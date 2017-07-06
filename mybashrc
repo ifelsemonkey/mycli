@@ -1,0 +1,81 @@
+if (($(echo $BASH_VERSION |cut -d'.' -f2)>=3));then
+    export HISTFILESIZE=-1 HISTSIZE=-1
+    a="[1;31m"
+    b="[0;36m"
+    c="[1;34m"
+    p="\342\224\214"
+    q="\342\224\200"
+    r="\342\224\224"
+    E="\e"
+    . ~/src/commandline/git-prompt.sh
+    #export PS1="\[$E$b\]$p$q[\$?\[$E$c\]|\[$E$b\]\$msgcount\[$E$b\]]$q\[$E$b\][\$(__git_ps1)]$q<\[$E$b\]\h:\[$E$c\]\w\[$E$b\]>\n$r\[$E$b\]"
+    export PS1="\[$E$b\]$p$q[\$?\[$E$c\]|\[$E$b\]\$msgcount\[$E$b\]]$q\[$E$b\][\$(__git_ps1)]$q<t450:\[$E$b\]\[$E$c\]\w\[$E$b\]>\n$r\[$E$b\]"
+else
+    export HISTFILESIZE=400000000
+    export HISTSIZE=10000
+fi
+
+mkdir ~/bash_history/ 2>/dev/null || true
+HISTCONTROL=ignoreboth
+export HISTIGNORE="&:ls:[bf]g:exit:pwd:clear:history:mount:umount:[ \t]*"
+PROMPT_COMMAND="history -a;history -n;notif"
+HISTFILE=~/bash_history/$(date +%Y-%m)
+shopt -s histappend
+
+notif() {
+    # asynchronous messages goes to this file
+    f=~/inbox
+    if [ -f $f ];then
+        msgcount=$(wc -l < $f)
+    else
+        unset msgcount
+    fi
+}
+
+HISTORY() {
+    [ $# -eq 0 ] && return
+    grep $1 ~/bash_history/*
+}
+
+alias od='od -w32 --endian=big -t x1z' 
+
+# let the user decide 
+#if [ -z "$TMUX" ];then
+#    if tmux ls 2>/dev/null; then
+#        tmux attach -t "main"
+#    else
+#        tmux new-session -s "main"
+#    fi
+#fi
+
+##### my tmux stuff
+tbuftsdir=~/buffer/$(date +%Y-%m-%d)
+[ ! -d $tbuftsdir ] && mkdir -p $tbuftsdir
+
+tsave() {
+    dir=${1:-$tbuftsdir}
+    [ ! -d $dir ] && mkdir -p $dir
+    for buf_name in `tmux list-buffers | sed -e 's/\(buffer[0-9]*\).*/\1/'`;do 
+        printf "."
+        tmux save-buffer -b $buf_name $dir/"$buf_name.txt";
+    done
+    echo
+}
+
+tload() {
+    dir=${1:-$tbuftsdir}
+    if [ ! -d $dir ];then 
+        mkdir -p $dir
+        return
+    fi
+    if [ "$(ls -A $dir)" ];then
+        for f in $dir/*;do 
+            a=$(basename $f)
+            b=${a%.*}
+            printf "."
+            tmux load-buffer -b $b $f
+        done
+        echo 
+    fi
+}
+#####
